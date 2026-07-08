@@ -15,7 +15,7 @@ const ALLOWED_ORIGINS = [
 
 export default async function handler(req, res) {
     const origin = req.headers.origin;
-    console.log("Origen recibido:", origin);
+    console.log("Received origin:", origin);
 
     if (ALLOWED_ORIGINS.includes(origin)) {
         res.setHeader("Access-Control-Allow-Origin", origin);
@@ -26,25 +26,25 @@ export default async function handler(req, res) {
     if (req.method === "OPTIONS") return res.status(200).end();
 
     if (req.method !== "POST") {
-        console.log("Método rechazado:", req.method);
+        console.log("Rejected method:", req.method);
         return res.status(405).json({ error: "Method not allowed" });
     }
 
     if (!ALLOWED_ORIGINS.includes(origin)) {
-        console.log("Origen no autorizado:", origin);
+        console.log("Origin not allowed:", origin);
         return res.status(403).json({ error: "Origin not allowed" });
     }
 
-    console.log("Body recibido:", req.body);
+    console.log("Received body:", req.body);
 
     const { interactive, target, session, device } = req.body;
     if (!interactive || !target || !session) {
-        console.log("Campos faltantes:", { interactive, target, session, device });
+        console.log("Missing fields:", { interactive, target, session, device });
         return res.status(400).json({ error: "Missing fields" });
     }
 
     try {
-        console.log("Intentando escribir en Firestore...");
+        console.log("Attempting Firestore write...");
         const docRef = await db.collection("interactions").add({
             interactive,
             target,
@@ -52,10 +52,10 @@ export default async function handler(req, res) {
             device: device || "unknown",
             timestamp: new Date().toISOString()
         });
-        console.log("Escrito con éxito, doc ID:", docRef.id);
+        console.log("Write succeeded, doc ID:", docRef.id);
         res.status(200).json({ ok: true, id: docRef.id });
     } catch (err) {
-        console.error("Error al escribir en Firestore:", err.message, err.stack);
-        res.status(500).json({ error: "Error interno al guardar", detalle: err.message });
+        console.error("Firestore write error:", err.message, err.stack);
+        res.status(500).json({ error: "Internal error saving document", detail: err.message });
     }
 }
