@@ -15,6 +15,7 @@ const ALLOWED_ORIGINS = [
 
 export default async function handler(req, res) {
     const origin = req.headers.origin;
+    console.log("Origen recibido:", origin);
 
     if (ALLOWED_ORIGINS.includes(origin)) {
         res.setHeader("Access-Control-Allow-Origin", origin);
@@ -23,24 +24,38 @@ export default async function handler(req, res) {
     res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
     if (req.method === "OPTIONS") return res.status(200).end();
-    if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
+
+    if (req.method !== "POST") {
+        console.log("Método rechazado:", req.method);
+        return res.status(405).json({ error: "Method not allowed" });
+    }
 
     if (!ALLOWED_ORIGINS.includes(origin)) {
+        console.log("Origen no autorizado:", origin);
         return res.status(403).json({ error: "Origin not allowed" });
     }
 
+    console.log("Body recibido:", req.body);
+
     const { interactive, target, session, device } = req.body;
     if (!interactive || !target || !session) {
+        console.log("Campos faltantes:", { interactive, target, session, device });
         return res.status(400).json({ error: "Missing fields" });
     }
 
-    await db.collection("interactions").add({
-        interactive,
-        target,
-        session,
-        device: device || "unknown",
-        timestamp: new Date().toISOString()
-    });
-
-    res.status(200).json({ ok: true });
+    try {
+        console.log("Intentando escribir en Firestore...");
+        const docRef = await db.collection("interactions").add({
+            interactive,
+            target,
+            session,
+            device: device || "unknown",
+            timestamp: new Date().toISOString()
+        });
+        console.log("Escrito con éxito, doc ID:", docRef.id);
+        res.status(200).json({ ok: true, id: docRef.id });
+    } catch (err) {
+        console.error("Error al escribir en Firestore:", err.message, err.stack);
+        res.status(500).json({ error: "Error interno al guardar", detalle: err.message });
+    }
 }
