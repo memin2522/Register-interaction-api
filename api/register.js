@@ -31,7 +31,7 @@ export default async function handler(req, res) {
     if (!ALLOWED_ORIGINS.includes(origin)) {
         return res.status(403).json({ error: "Origin not allowed" });
     }
-
+    console.log(req.body);
     const { interactive, target, session, device, os } = req.body;
     if (!interactive || !target || !session) {
         return res.status(400).json({ error: "Missing fields" });
